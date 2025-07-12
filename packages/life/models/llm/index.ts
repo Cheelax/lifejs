@@ -1,10 +1,12 @@
 import { z } from "zod";
+import { AnthropicLLM, anthropicLLMConfigSchema } from "./providers/anthropic";
 import { MistralLLM, mistralLLMConfigSchema } from "./providers/mistral";
 import { OpenAILLM, openAILLMConfigSchema } from "./providers/openai";
 import { XaiLLM, xaiLLMConfigSchema } from "./providers/xai";
 
 // Providers
 export const llmProviders = {
+  anthropic: { class: AnthropicLLM, configSchema: anthropicLLMConfigSchema },
   mistral: { class: MistralLLM, configSchema: mistralLLMConfigSchema },
   openai: { class: OpenAILLM, configSchema: openAILLMConfigSchema },
   xai: { class: XaiLLM, configSchema: xaiLLMConfigSchema },

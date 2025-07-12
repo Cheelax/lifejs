@@ -42,6 +42,7 @@
     }
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.1",
     "@cartesia/cartesia-js": "^2.2.4",
     "@deepgram/sdk": "4.1.0",
     "@huggingface/transformers": "^3.5.2",
