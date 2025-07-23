@@ -1,5 +1,4 @@
-Hey, are you considering contributing to Life.js?
-Welcome here! 👋
+Hey, welcome here! 👋
 
 This document contains everything you need to know to become a Life.js contributor.
 

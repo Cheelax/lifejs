@@ -1,6 +1,6 @@
+import type { z } from "zod";
 import { AsyncQueue } from "@/shared/async-queue";
 import { newId } from "@/shared/prefixed-id";
-import type { z } from "zod";
 
 // STTBase.generate()
 export type STTGenerateStreamChunk =

@@ -1,38 +1,37 @@
 import { Room, RoomEvent } from "livekit-client";
 import { z } from "zod";
-import { ClientTransportBase, type ClientTransportEvent } from "../base/client";
+import { BaseClientTransportProvider, type ClientTransportEvent } from "../base/client";
 
 // - Config
-// export const livekitClientConfigSchema = z.object({
-//   serverUrl: z
-//     .string()
-//     .url()
-//     .default(process.env.LIVEKIT_SERVER_URL ?? "ws://localhost:7880"),
-// });
-// export type LiveKitClientConfig<T extends "input" | "output"> = T extends "input"
-//   ? z.input<typeof livekitClientConfigSchema>
-//   : z.output<typeof livekitClientConfigSchema>;
+export const livekitClientConfigSchema = z.object({
+  serverUrl: z
+    .string()
+    .url()
+    .default(process.env.LIVEKIT_SERVER_URL ?? "ws://localhost:7880"),
+});
+export type LiveKitClientConfig<T extends "input" | "output"> = T extends "input"
+  ? z.input<typeof livekitClientConfigSchema>
+  : z.output<typeof livekitClientConfigSchema>;
 
 // - Transport
-export class LiveKitClientTransport extends ClientTransportBase<z.AnyZodObject> {
+export class LiveKitClientTransportProvider extends BaseClientTransportProvider<z.AnyZodObject> {
   isConnected = false;
   room: Room | null = null;
   listeners: Partial<
     Record<ClientTransportEvent["type"], ((event: ClientTransportEvent) => void)[]>
   > = {};
 
-  constructor() {
-    super(z.object({}), {});
-    this.config.serverUrl = process.env.LIVEKIT_SERVER_URL ?? "ws://localhost:7880";
+  constructor(config: LiveKitClientConfig<"input">) {
+    super(livekitClientConfigSchema, config);
   }
 
   ensureConnected(
     name: string,
-    connector: LiveKitClientTransport,
-  ): asserts connector is LiveKitClientTransport & {
+    connector: LiveKitClientTransportProvider,
+  ): asserts connector is LiveKitClientTransportProvider & {
     room: Room & { localParticipant: NonNullable<Room["localParticipant"]> };
   } {
-    if (!this.isConnected || !this.room?.localParticipant)
+    if (!(this.isConnected && this.room?.localParticipant))
       throw new Error(
         `Calling this code (${name}) requires a connected room. Call joinRoom() first.`,
       );
@@ -95,7 +94,7 @@ export class LiveKitClientTransport extends ClientTransportBase<z.AnyZodObject> 
   async enableMicrophone() {
     this.ensureConnected("enableMicrophone", this);
     await this.room.localParticipant.setMicrophoneEnabled(true, {
-      echoCancellation: false,
+      echoCancellation: true,
       noiseSuppression: false,
       voiceIsolation: false,
     });

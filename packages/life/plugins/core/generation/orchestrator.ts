@@ -1,19 +1,20 @@
-import type { Agent } from "@/agent/agent";
+import { z } from "zod";
 import type { Resources } from "@/agent/resources";
-import type { EmitFunction, PluginEvent } from "@/plugins/definition";
+import type { AgentServer } from "@/agent/server";
+import type { EmitFunction, PluginEvent, ReadonlyPluginContext } from "@/plugins/definition";
 import { AsyncQueue } from "@/shared/async-queue";
 import { newId } from "@/shared/prefixed-id";
-import { z } from "zod";
-import type { corePlugin } from "../core";
+import type { corePlugin } from "../server";
 import { Generation, type GenerationChunk } from "./generation";
 
 export type CoreEvent = PluginEvent<typeof corePlugin._definition.events, "output">;
-type CoreContext = typeof corePlugin._definition.context;
+type CoreContext = z.output<typeof corePlugin._definition.context.schema>;
+
 export type CoreParams = {
-  agent: Agent;
+  agent: AgentServer;
   emit: EmitFunction<typeof corePlugin._definition.events>;
-  queue: AsyncQueue<{ event: CoreEvent; context: CoreContext }>;
-  context: CoreContext;
+  queue: AsyncQueue<CoreEvent>;
+  context: ReadonlyPluginContext<CoreContext>;
 };
 
 // Orchestrator
@@ -31,8 +32,8 @@ export class GenerationOrchestrator {
   #generationsResourcesRequestsIds: Record<string, string> = {};
   #resourcesResponses: Record<string, Resources> = {};
 
-  constructor(params: Omit<CoreParams, "context">) {
-    this.#core = params as CoreParams;
+  constructor(params: CoreParams) {
+    this.#core = params;
   }
 
   async start() {
@@ -40,20 +41,17 @@ export class GenerationOrchestrator {
     this.#consumeGenerations();
 
     // Start processing events
-    for await (const { event, context } of this.#core.queue) {
-      // Update the context
-      this.#core.context = context;
-
+    for await (const event of this.#core.queue) {
       // If this is a generation event, process it
       if (this.#isGenerationEvent(event)) await this.#processGenerationEvent(event);
     }
   }
 
-  async #createGeneration() {
+  #createGeneration() {
     // Create the generation
     const generation = new Generation({
       agent: this.#core.agent,
-      voiceEnabled: this.#core.context.voiceEnabled,
+      voiceEnabled: this.#core.context.get().voiceEnabled,
     });
     this.#generations.push(generation);
 
@@ -61,7 +59,7 @@ export class GenerationOrchestrator {
     generation.onStatusChange(() => {
       const runningCount = this.#generations.filter((g) => g.status === "started").length;
       // - If the agent is thinking, but no generation is running, emit thinking end
-      if (this.#core.context.status.thinking) {
+      if (this.#core.context.get().status.thinking) {
         if (runningCount === 0) this.#core.emit({ type: "agent.thinking-end", urgent: true });
       }
       // - Or if the agent is not thinking, but a generation is running, emit thinking start
@@ -73,7 +71,7 @@ export class GenerationOrchestrator {
 
   async #processGenerationEvent(event: CoreEvent) {
     // Retrieve or create the first idle generation
-    let generation = this.#generations.find((generation) => generation.status === "idle");
+    let generation = this.#generations.find((g) => g.status === "idle");
     if (!generation) generation = await this.#createGeneration();
 
     // Process the event
@@ -257,7 +255,7 @@ export class GenerationOrchestrator {
   }
 
   #isQueueBusy() {
-    return this.#core.queue.some(({ event }) => this.#isGenerationEvent(event));
+    return this.#core.queue.some((event) => this.#isGenerationEvent(event));
   }
 
   async #consumeGenerations() {
@@ -269,7 +267,7 @@ export class GenerationOrchestrator {
     for await (const generation of this.#generationsQueue) {
       for await (const chunk of limiter(generation.queue)) {
         // Set speaking status on first content chunk
-        if (!this.#core.context.status.speaking && chunk.type === "content") {
+        if (!this.#core.context.get().status.speaking && chunk.type === "content") {
           this.#core.emit({ type: "agent.speaking-start", urgent: true });
         }
 
@@ -277,7 +275,7 @@ export class GenerationOrchestrator {
         if (chunk.type === "content") {
           if (chunk.textChunk.length)
             this.#core.emit({ type: "agent.text-chunk", data: { textChunk: chunk.textChunk } });
-          if (this.#core.context.voiceEnabled && chunk.voiceChunk?.length)
+          if (this.#core.context.get().voiceEnabled && chunk.voiceChunk?.length)
             this.#core.emit({ type: "agent.voice-chunk", data: { voiceChunk: chunk.voiceChunk } });
         }
 
@@ -293,7 +291,7 @@ export class GenerationOrchestrator {
           this.#generations = this.#generations.filter((g) => g.id !== generation.id);
 
           // If this is the last generation, notify the end of speaking
-          if (this.#core.context.status.speaking && this.#generationsQueue.length() === 0) {
+          if (this.#core.context.get().status.speaking && this.#generationsQueue.length() === 0) {
             this.#core.emit({ type: "agent.speaking-end", urgent: true });
           }
 
@@ -312,7 +310,7 @@ export class GenerationOrchestrator {
  * @param leadMs Maximum positive/negative lead you will allow.
  * @param sampleRate Sample rate of the audio chunks (default: 16000)
  */
-function throttledGenerationQueue(leadMs = 300, sampleRate = 16000) {
+function throttledGenerationQueue(leadMs = 300, sampleRate = 16_000) {
   /** Wall-clock time we pegged the *first* chunk to. */
   let anchorWallTime = Date.now();
 

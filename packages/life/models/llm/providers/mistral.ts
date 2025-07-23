@@ -1,4 +1,3 @@
-import type { Message, ToolDefinition } from "@/agent/resources";
 import { Mistral } from "@mistralai/mistralai";
 import type {
   AssistantMessage,
@@ -9,6 +8,7 @@ import type {
 } from "@mistralai/mistralai/models/components";
 import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
+import type { Message, ToolDefinition } from "@/agent/resources";
 import { LLMBase, type LLMGenerateMessageJob } from "../base";
 
 // Define Mistral-specific message types with required role properties

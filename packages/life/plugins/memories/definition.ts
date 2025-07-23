@@ -1,5 +1,5 @@
-import type { Message } from "@/agent/resources";
 import { z } from "zod";
+import type { Message } from "@/agent/resources";
 
 // - Dependencies
 interface _MemoryDependenciesDefinition {
@@ -17,59 +17,75 @@ export const memoryConfigSchema = z.object({
 });
 
 export type MemoryConfig<T extends "input" | "output"> = T extends "input"
-  ? { behavior?: "blocking" | "non-blocking" }
-  : { behavior: "blocking" | "non-blocking" };
+  ? z.input<typeof memoryConfigSchema>
+  : z.output<typeof memoryConfigSchema>;
 
 // - Definition
-export type MemoryDefinition = {
+export interface MemoryDefinition {
   name: string;
   config: MemoryConfig<"output">;
-  getOutput?: Message[] | ((params: { messages: Message[] }) => Message[] | Promise<Message[]>);
-  onHistoryChange?: (history: Message[]) => void;
+  output?: Message[] | ((params: { messages: Message[] }) => Message[] | Promise<Message[]>);
+  onHistoryChange?: (params: { messages: Message[] }) => void;
   dependencies: MemoryDependenciesDefinition;
-};
+}
 
 // - Builder
-export class MemoryDefinitionBuilder<const Definition extends MemoryDefinition> {
-  #def: Definition;
+export class MemoryDefinitionBuilder<
+  const Definition extends MemoryDefinition,
+  ExcludedMethods extends string = never,
+> {
+  _definition: Definition;
 
   constructor(def: Definition) {
-    this.#def = def;
+    this._definition = def;
   }
 
   dependencies<Dependencies extends MemoryDependenciesDefinition>(dependencies: Dependencies) {
+    type NewExcludedMethods = ExcludedMethods | "dependencies";
     return new MemoryDefinitionBuilder({
-      ...this.#def,
+      ...this._definition,
       dependencies: "_definition" in dependencies ? dependencies._definition : dependencies,
-    }) as MemoryDefinitionBuilder<Definition & { dependencies: Dependencies }>;
+    }) as Omit<
+      MemoryDefinitionBuilder<Definition & { dependencies: Dependencies }, NewExcludedMethods>,
+      NewExcludedMethods
+    >;
   }
 
   config(config: MemoryConfig<"input">) {
     const parsedConfig = memoryConfigSchema.parse(config);
+    type NewExcludedMethods = ExcludedMethods | "config";
     return new MemoryDefinitionBuilder({
-      ...this.#def,
+      ...this._definition,
       config: parsedConfig,
-    });
+    }) as Omit<
+      MemoryDefinitionBuilder<Definition & { config: typeof parsedConfig }, NewExcludedMethods>,
+      NewExcludedMethods
+    >;
   }
 
-  getOutput(
+  output(
+    // biome-ignore lint/nursery/noShadow: expected here
     params: Message[] | ((params: { messages: Message[] }) => Message[] | Promise<Message[]>),
   ) {
+    type NewExcludedMethods = ExcludedMethods | "output";
     return new MemoryDefinitionBuilder({
-      ...this.#def,
-      getOutput: params,
-    });
+      ...this._definition,
+      output: params,
+    }) as Omit<
+      MemoryDefinitionBuilder<Definition & { output: typeof params }, NewExcludedMethods>,
+      NewExcludedMethods
+    >;
   }
-
-  onHistoryChange(onHistoryChange: (history: Message[]) => void) {
+  // biome-ignore lint/nursery/noShadow: expected here
+  onHistoryChange(params: (params: { messages: Message[] }) => void) {
+    type NewExcludedMethods = ExcludedMethods | "onHistoryChange";
     return new MemoryDefinitionBuilder({
-      ...this.#def,
-      onHistoryChange,
-    });
-  }
-
-  _definition() {
-    return this.#def;
+      ...this._definition,
+      onHistoryChange: params,
+    }) as Omit<
+      MemoryDefinitionBuilder<Definition & { onHistoryChange: typeof params }, NewExcludedMethods>,
+      NewExcludedMethods
+    >;
   }
 }
 

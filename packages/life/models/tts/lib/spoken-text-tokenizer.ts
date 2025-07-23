@@ -78,6 +78,7 @@ interface Chunk {
 const isSilenceChunk = (c: Chunk | null): c is Chunk =>
   !!c && c.chunk.length > 0 && SILENCE_SET.has(c.chunk[0] ?? "");
 
+// biome-ignore-start lint/performance/useTopLevelRegex: hoisting regexes led to the tokenize to break, we'll keep them inline for now until this becames a performance issue
 export class SpokenTextTokenizer {
   /* ────────── core iterator ────────── */
   private *iter(text: string): Generator<Chunk> {
@@ -216,3 +217,5 @@ export class SpokenTextTokenizer {
 }
 
 export const tokenizer = new SpokenTextTokenizer();
+
+// biome-ignore-end lint/performance/useTopLevelRegex: reason

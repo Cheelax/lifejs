@@ -1,9 +1,10 @@
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import type { Message } from "@/agent/resources";
 import { InferenceSession, Tensor } from "onnxruntime-node";
 import { z } from "zod";
+import type { Message } from "@/agent/resources";
 import { EOUBase } from "../../base";
+
 const transformers = import("@huggingface/transformers");
 
 // Config
@@ -14,7 +15,7 @@ export const livekitEOUConfigSchema = z.object({
    * inferences, the most balanced value considering inference time and accuracy was
    * in the 2-5 messages range for the quantized version. Carefully benchmark the change
    * if you consider increasing / decreasing this value outside of that range.
-   * */
+   */
   maxMessages: z.number().default(3),
   maxTokens: z.number().default(512),
 });

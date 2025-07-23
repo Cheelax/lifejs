@@ -1,4 +1,4 @@
-import type { serverTransportProviders } from "./index.server.js";
+import type { serverTransportProviders } from "./server.js";
 
 export type GetTokenFunction<ProviderId extends keyof typeof serverTransportProviders> = (
   config: ConstructorParameters<(typeof serverTransportProviders)[ProviderId]["class"]>[0],

@@ -41,6 +41,7 @@ export class AsyncQueue<T> implements AsyncIterator<T>, AsyncIterable<T> {
       const value = this.#buf.shift();
       if (value !== undefined) return { value, done: false };
       if (this.#closed) return { value: undefined, done: true };
+      // biome-ignore lint/nursery/noAwaitInLoop: expected here
       await new Promise<void>((res) => (this.#wakeUp = res)); // sleep until push/stop
       this.#wakeUp = undefined;
     }

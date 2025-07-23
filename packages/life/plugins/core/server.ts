@@ -1,6 +1,6 @@
+import { z } from "zod";
 import { History } from "@/agent/history";
 import {
-  type Message,
   createMessageInputSchema,
   messageSchema,
   resourcesSchema,
@@ -10,11 +10,8 @@ import {
   updateMessageInputSchema,
 } from "@/agent/resources";
 import { audioChunkToMs } from "@/shared/audio-chunk-to-ms";
-import { klona } from "@/shared/klona";
 import { RollingBuffer } from "@/shared/rolling-buffer";
-import { stableDeepEqual } from "@/shared/stable-deep-equal";
-import { serializeError } from "serialize-error";
-import { z } from "zod";
+import { serialize } from "@/shared/stable-serialize";
 import { definePlugin } from "../definition";
 import { GenerationOrchestrator } from "./generation/orchestrator";
 
@@ -75,14 +72,10 @@ export const corePlugin = definePlugin("core")
         .default({}),
     }),
   )
-  .context({
-    messages: [] as Message[],
-    status: { listening: true as boolean, thinking: false as boolean, speaking: false as boolean },
-    voiceEnabled: true as boolean,
-  })
   .events({
     "messages.create": { dataSchema: createMessageInputSchema },
     "messages.update": { dataSchema: updateMessageInputSchema },
+    "messages.changed": { dataSchema: z.array(messageSchema) },
     "user.audio-chunk": { dataSchema: z.object({ audioChunk: z.custom<Int16Array>() }) },
     "user.voice-start": {},
     "user.voice-chunk": {
@@ -156,17 +149,34 @@ export const corePlugin = definePlugin("core")
     "agent.thinking-start": {}, // start of generation
     "agent.thinking-end": {}, // end of generation
   })
-  .methods({
-    createMessage: {
-      schema: z.function().args(createMessageInputSchema).returns(z.string()),
-      run: ({ emit }, message) => emit({ type: "messages.create", data: message, urgent: true }),
+  .context({
+    schema: z.object({
+      messages: z.array(messageSchema).default([]),
+      status: z
+        .object({
+          listening: z.boolean().default(true),
+          thinking: z.boolean().default(false),
+          speaking: z.boolean().default(false),
+        })
+        .default({}),
+      voiceEnabled: z.boolean().default(true),
+    }),
+    initial: {
+      messages: [],
+      status: {
+        listening: true,
+        thinking: false,
+        speaking: false,
+      },
+      voiceEnabled: true,
     },
-    updateMessage: {
-      schema: z.function().args(updateMessageInputSchema).returns(z.string()),
-      run: ({ emit }, message) => emit({ type: "messages.update", data: message, urgent: true }),
-    },
-    continue: {
-      schema: z
+  })
+  .api({
+    schema: z.object({
+      getMessages: z.function().returns(z.array(messageSchema)),
+      createMessage: z.function().args(createMessageInputSchema).returns(z.string()),
+      updateMessage: z.function().args(updateMessageInputSchema).returns(z.string()),
+      continue: z
         .function()
         .args(
           z.object({
@@ -175,10 +185,7 @@ export const corePlugin = definePlugin("core")
           }),
         )
         .returns(z.string()),
-      run: ({ emit }, params) => emit({ type: "agent.continue", data: params, urgent: true }),
-    },
-    decide: {
-      schema: z
+      decide: z
         .function()
         .args(
           z.object({
@@ -188,10 +195,7 @@ export const corePlugin = definePlugin("core")
           }),
         )
         .returns(z.string()),
-      run: ({ emit }, params) => emit({ type: "agent.decide", data: params, urgent: true }),
-    },
-    say: {
-      schema: z
+      say: z
         .function()
         .args(
           z.object({
@@ -201,10 +205,7 @@ export const corePlugin = definePlugin("core")
           }),
         )
         .returns(z.string()),
-      run: ({ emit }, params) => emit({ type: "agent.say", data: params, urgent: true }),
-    },
-    interrupt: {
-      schema: z
+      interrupt: z
         .function()
         .args(
           z.object({
@@ -214,32 +215,82 @@ export const corePlugin = definePlugin("core")
           }),
         )
         .returns(z.string()),
-      run: ({ emit }, params) => emit({ type: "agent.interrupt", data: params, urgent: true }),
+    }),
+    implementation: (Base, _schema) => {
+      type Schema = z.infer<typeof _schema>;
+      return class extends Base {
+        getMessages: Schema["getMessages"] = () => {
+          return this.raw.context.get().messages;
+        };
+        createMessage: Schema["createMessage"] = (message) => {
+          return this.raw.emit({ type: "messages.create", data: message, urgent: true });
+        };
+        updateMessage(message: z.infer<typeof updateMessageInputSchema>) {
+          return this.raw.emit({ type: "messages.update", data: message, urgent: true });
+        }
+        continue(params: {
+          interrupt?: "abrupt" | "smooth" | false;
+          preventInterruption?: boolean;
+        }) {
+          return this.raw.emit({ type: "agent.continue", data: params, urgent: true });
+        }
+        decide(params: {
+          messages: z.infer<typeof messageSchema>[];
+          interrupt?: "abrupt" | "smooth" | false;
+          preventInterruption?: boolean;
+        }) {
+          return this.raw.emit({ type: "agent.decide", data: params, urgent: true });
+        }
+        say(params: {
+          text: string;
+          interrupt?: "abrupt" | "smooth" | false;
+          preventInterruption?: boolean;
+        }) {
+          return this.raw.emit({ type: "agent.say", data: params, urgent: true });
+        }
+        interrupt(params: { reason: string; author: "user" | "application"; force?: boolean }) {
+          return this.raw.emit({ type: "agent.interrupt", data: params, urgent: true });
+        }
+      };
+    },
+  })
+  .lifecycle({
+    onStart: ({ context, emit }) => {
+      // Log status changes
+      context.onChange(
+        (ctx) => ctx.status,
+        (newStatus) => console.log("🔄", newStatus),
+      );
+
+      // Log messages changes
+      context.onChange(
+        (ctx) => ctx.messages,
+        (newMessages) => console.log("💬", newMessages),
+      );
+
+      // Emit messages changed event
+      context.onChange(
+        (ctx) => ctx.messages,
+        (newMessages) => emit({ type: "messages.changed", data: newMessages }),
+      );
     },
   })
   // 1. Handle agent' status changes
   .addEffect("handle-status", ({ event, context }) => {
-    const statusBefore = klona(context.status);
     if (event.type === "agent.thinking-start") {
-      context.status.listening = false;
-      context.status.thinking = true;
+      context.set("status", (prev) => ({ ...prev, listening: false, thinking: true }));
     } else if (event.type === "agent.thinking-end") {
-      context.status.thinking = false;
+      context.set("status", (prev) => ({ ...prev, thinking: false }));
     } else if (event.type === "agent.speaking-end")
-      context.status = { listening: true, thinking: false, speaking: false };
+      context.set("status", { listening: true, thinking: false, speaking: false });
     else if (event.type === "agent.speaking-start") {
-      context.status.listening = false;
-      context.status.speaking = true;
-    }
-    if (!stableDeepEqual(statusBefore, context.status)) {
-      console.log("💬", context.status);
+      context.set("status", (prev) => ({ ...prev, listening: false, speaking: true }));
     }
   })
   // 2. Maintain messages history
   .addEffect("handle-messages", ({ event, context }) => {
-    const _initialMessages = klona(context.messages);
     // Build the history instance
-    const history = new History(context.messages);
+    const history = new History(context.get().messages);
     // Handle direct history message creation requests
     if (event.type === "messages.create") history.createMessage(event.data);
     // Handle direct history message update requests
@@ -302,29 +353,17 @@ export const corePlugin = definePlugin("core")
     }
 
     // Save the modified messages array
-    context.messages = history.getMessages();
-
-    if (!stableDeepEqual(context.messages, _initialMessages)) {
-      // console.log(
-      //   "💬",
-      //   context.messages.map((m) => {
-      //     if (m.role === "user" || m.role === "agent") return `${m.role}: ${m.content}`;
-      //     const { createdAt, lastUpdated, role, id, ...rest } = klona(m);
-      //     return `${m.role}: ${JSON.stringify(rest)}`;
-      //   }),
-      // );
-      console.log("💬", context.messages);
-    }
+    context.set("messages", history.getMessages());
   })
   // 3. Listen for incoming audio chunks coming from the WebRTC room
-  .addService("incoming-audio", async ({ agent, emit }) => {
+  .addService("incoming-audio", ({ agent, emit }) => {
     agent.transport.on("audio-chunk", (event) => {
       emit({ type: "user.audio-chunk", data: { audioChunk: event.chunk } });
     });
     return new Promise((resolve) => process.once("SIGINT", () => resolve()));
   })
   // 4. Use VAD model to detect voice activity
-  .addService("detect-voice", async ({ queue, agent, emit, methods, config }) => {
+  .addService("detect-voice", async ({ queue, agent, emit, config, context }) => {
     const SCORE_IN_THRESHOLD = config.voiceDetection.scoreInThreshold;
     const SCORE_OUT_THRESHOLD = config.voiceDetection.scoreOutThreshold;
     const PRE_PADDING_CHUNKS = config.voiceDetection.prePaddingChunks;
@@ -351,7 +390,7 @@ export const corePlugin = definePlugin("core")
     };
 
     // Listen to user audio chunks
-    for await (const { event, context } of queue) {
+    for await (const event of queue) {
       if (event.type !== "user.audio-chunk") continue;
 
       // Helper method to emit a voice chunk
@@ -373,7 +412,7 @@ export const corePlugin = definePlugin("core")
       const inSpeechChanged = inSpeech !== inSpeechBefore;
 
       // If the agent is currently listening
-      if (context.status.listening) {
+      if (context.get().status.listening) {
         // If the current chunk contains voice
         if (inSpeech) {
           // Reset post-padding count for the new voice session
@@ -425,13 +464,17 @@ export const corePlugin = definePlugin("core")
           const duration = audioChunkToMs(event.data.audioChunk);
           voiceChunksWindow.push({
             timestamp: Date.now(),
-            duration: duration,
+            duration,
           });
         }
 
         // If the interruption duration is long enough, abort and emit all accumulated voice chunks
         if (getCurrentInterruptDuration() >= INTERRUPT_MIN_DURATION_MS) {
-          methods.interrupt({ reason: "The user is speaking", author: "user" });
+          emit({
+            type: "agent.interrupt",
+            data: { reason: "The user is speaking", author: "user" },
+            urgent: true,
+          });
           emit({ type: "user.voice-start" });
           for (const voiceChunk of interruptBuffer.get()) {
             emitVoiceChunk({ voiceChunk, type: "voice" });
@@ -456,13 +499,13 @@ export const corePlugin = definePlugin("core")
     })();
 
     // Push voice chunks to the STT model
-    for await (const { event } of queue) {
+    for await (const event of queue) {
       if (event.type !== "user.voice-chunk") continue;
       sttJob.pushVoice(event.data.voiceChunk);
     }
   })
   // 6. Use EOU model to detect user's end of turn
-  .addService("detect-end-of-turn", async ({ queue, agent, methods, config }) => {
+  .addService("detect-end-of-turn", async ({ queue, agent, emit, config, context }) => {
     const END_OF_TURN_THRESHOLD = config.endOfTurnDetection.threshold;
     const MAX_TIMEOUT_MS = config.endOfTurnDetection.maxTimeoutMs;
     const MIN_TIMEOUT_MS = config.endOfTurnDetection.minTimeoutMs;
@@ -480,12 +523,12 @@ export const corePlugin = definePlugin("core")
     const answer = () => {
       if (timeoutId) clearTimeout(timeoutId);
       if (!canAnswer()) return;
-      methods.continue({ interrupt: "abrupt" });
+      emit({ type: "agent.continue", data: { interrupt: "abrupt" }, urgent: true });
       lastMessageBuffer = "";
     };
 
-    for await (const { event, context } of queue) {
-      if (!context.status.listening) continue;
+    for await (const event of queue) {
+      if (!context.get().status.listening) continue;
 
       // Handle voice related events and text chunks
       if (event.type === "user.voice-start") userIsSpeaking = true;
@@ -500,7 +543,7 @@ export const corePlugin = definePlugin("core")
       if (!canAnswer()) continue;
 
       // Determine if the user has finished speaking
-      const endOfTurnProbability = await agent.models.eou.predict(context.messages);
+      const endOfTurnProbability = await agent.models.eou.predict(context.get().messages);
 
       // Emit the message if the user has finished speaking
       if (endOfTurnProbability >= END_OF_TURN_THRESHOLD) answer();
@@ -527,50 +570,52 @@ export const corePlugin = definePlugin("core")
     if (event.type !== "agent.resources-request") return;
     emit({
       type: "agent.resources-response",
-      data: { messages: context.messages, tools: config.tools, requestId: event.id },
+      data: { messages: context.get().messages, tools: config.tools, requestId: event.id },
     });
   })
   // 9. Handle tools executions
-  .addEffect("handle-tools", async ({ event, emit, config, methods }) => {
+  .addEffect("handle-tools", async ({ event, emit, config, api }) => {
     if (event.type !== "agent.tool-requests") return;
 
-    for (const request of event.data) {
-      const tool = config.tools.find((tool) => tool.name === request.name);
-      if (!tool) throw new Error(`Tool with id "${request.name}" not found.`);
+    await Promise.all(
+      event.data.map(async (request) => {
+        const tool = config.tools.find((t) => t.name === request.name);
+        if (!tool) throw new Error(`Tool with id "${request.name}" not found.`);
 
-      try {
-        const result = await tool.run(request.input);
-        emit({
-          type: "agent.tool-response",
-          data: {
-            result: {
-              toolId: request.id,
-              toolSuccess: result.success,
-              toolOutput: result.output,
+        try {
+          const result = await tool.run(request.input);
+          emit({
+            type: "agent.tool-response",
+            data: {
+              result: {
+                toolId: request.id,
+                toolSuccess: result.success,
+                toolOutput: result.output,
+              },
             },
-          },
-          urgent: true,
-        });
-      } catch (error) {
-        emit({
-          type: "agent.tool-response",
-          data: {
-            result: {
-              toolId: request.id,
-              toolSuccess: false,
-              toolError: JSON.stringify(serializeError(error)),
+            urgent: true,
+          });
+        } catch (error) {
+          emit({
+            type: "agent.tool-response",
+            data: {
+              result: {
+                toolId: request.id,
+                toolSuccess: false,
+                toolError: serialize(error as Error),
+              },
             },
-          },
-          urgent: true,
-        });
-      }
+            urgent: true,
+          });
+        }
 
-      methods.continue({ interrupt: "abrupt" });
-    }
+        api.continue({ interrupt: "abrupt" });
+      }),
+    );
   })
   // 10. Stream agent speech to the user
   .addService("outgoing-audio", async ({ queue, agent }) => {
-    for await (const { event } of queue) {
+    for await (const event of queue) {
       if (event.type !== "agent.voice-chunk") continue;
       agent.transport.streamAudioChunk(event.data.voiceChunk);
     }

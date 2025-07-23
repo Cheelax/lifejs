@@ -1,5 +1,77 @@
 # life
 
+## 0.11.1
+
+### Patch Changes
+
+- [@LilaRest](https://github.com/LilaRest) in [05bf447](https://github.com/lifejs/lifejs/commit/05bf4479da105d919c73014aa248469eaeb2adf2) — Typescript Intellisense was becoming quite slow when defining agents, plugins, etc. p90 latency is back to <150 ms.
+
+## 0.11.0
+
+### Minor Changes
+
+- [@LilaRest](https://github.com/LilaRest) in [88aa90e](https://github.com/lifejs/lifejs/commit/88aa90edf139cdfbceaaebaad25eecb9d8f2dbea) — The plugin.context() API has been improved with initial values
+- [@LilaRest](https://github.com/LilaRest) in [88aa90e](https://github.com/lifejs/lifejs/commit/88aa90edf139cdfbceaaebaad25eecb9d8f2dbea) — The plugin.methods() API has been replaced by plugin.api() making it more flexible and runtime agnostic
+- [@LilaRest](https://github.com/LilaRest) in [6c96aa3](https://github.com/lifejs/lifejs/commit/6c96aa3571e209da506bf06e377fef733b9024fb) — New defineStore() definition builder
+
+### Patch Changes
+
+- [@LilaRest](https://github.com/LilaRest) in [61437de](https://github.com/lifejs/lifejs/commit/61437de528787a59e9be66a1b224c355b14abcb4) — Exclude memories builder methods as they are called
+
+## 0.10.0
+
+### Minor Changes
+
+- [@LilaRest](https://github.com/LilaRest) in [e05db22](https://github.com/lifejs/lifejs/commit/e05db22eaf76f4617ed4fd389ee99913b26f117c) — Add an higher-level and typesafe RPC API to Transport classes
+- [@LilaRest](https://github.com/LilaRest) in [100a020](https://github.com/lifejs/lifejs/commit/100a020e9aa488e80f678c0a1e1d41e6989f1573) — New client-side config schema and types
+- [@LilaRest](https://github.com/LilaRest) in [9f72c47](https://github.com/lifejs/lifejs/commit/9f72c47df15197d2331062a7e82b635af62b2fae) — First functional version of client
+- [@LilaRest](https://github.com/LilaRest) in [a31a8b4](https://github.com/lifejs/lifejs/commit/a31a8b4a00edb76259c2c9a2efe15d403d172146) — Add support for ZodError serialization
+
+## 0.9.0
+
+### Minor Changes
+
+- [@LilaRest](https://github.com/LilaRest) in [180bd76](https://github.com/lifejs/lifejs/commit/180bd76dd5450abe347f31e3c6844074e783961e) — Simplify the plugin context API to enforce immutability without neither relying on complex JS Proxy patterns, nor on the consumers to properly clone values
+
+### Patch Changes
+
+- [@LilaRest](https://github.com/LilaRest) in [2922863](https://github.com/lifejs/lifejs/commit/29228635e7c74723e023e902310dd6da1c9008d3) — Plugin.methods() was still be typed with the raw context
+- [@LilaRest](https://github.com/LilaRest) in [180bd76](https://github.com/lifejs/lifejs/commit/180bd76dd5450abe347f31e3c6844074e783961e) — Make non-blocking memories running on history change, instead of resources requests
+- [@LilaRest](https://github.com/LilaRest) in [4685488](https://github.com/lifejs/lifejs/commit/468548843e8b76625199a5d3bd9d0974a45fe939) — Fix plugin.pick() broken typesafety
+
+## 0.8.1
+
+### Patch Changes
+
+- [@LilaRest](https://github.com/LilaRest) in [ca414d2](https://github.com/lifejs/lifejs/commit/ca414d2d81e341bb173a9fc28523abd36fcb3bce) — Cleanup bundle and package.json metadata
+- [@LilaRest](https://github.com/LilaRest) in [c8afe26](https://github.com/lifejs/lifejs/commit/c8afe263a4c558364017daa73b6d6a318eea7e17) — Make peer dependencies optional
+
+## 0.8.0
+
+### Minor Changes
+
+- [@LilaRest](https://github.com/LilaRest) in [0672921](https://github.com/lifejs/lifejs/commit/06729210cc09f05447bb7491019aee5b993f810a) — Wire plugin lifecycle hooks in the plugin runner
+- [@LilaRest](https://github.com/LilaRest) in [1689ef2](https://github.com/lifejs/lifejs/commit/1689ef2cd69c545104cbcedd253363fd32d83c80) — Add set() method to plugin context and onChange() listeners
+
+### Patch Changes
+
+- [@LilaRest](https://github.com/LilaRest) in [01e5ff9](https://github.com/lifejs/lifejs/commit/01e5ff9474feafba02fc4783494343db9df33630) — Solve context.onChange() not properly comparing object values
+- [@LilaRest](https://github.com/LilaRest) in [01e5ff9](https://github.com/lifejs/lifejs/commit/01e5ff9474feafba02fc4783494343db9df33630) — Refactor and simplify: equal, serialize, and sha256 libraries for consistency
+- [@LilaRest](https://github.com/LilaRest) in [5542020](https://github.com/lifejs/lifejs/commit/55420203782b39d59e012d81bbd98c7a12bff9a0) — Rename memory.getOutput() to memory.output()
+- [@LilaRest](https://github.com/LilaRest) in [a1b3964](https://github.com/lifejs/lifejs/commit/a1b3964b46b9e80361699b99887474dbc24d9b14) — TTS estimated transcript's tokenizer was broken because of regex hoisting
+
+## 0.7.0
+
+### Minor Changes
+
+- [@LilaRest](https://github.com/LilaRest) in [766b7a2](https://github.com/lifejs/lifejs/commit/766b7a2945b29033270597d22785b9e756071147) — Add a standardized serialization/deserialization library
+- [@LilaRest](https://github.com/LilaRest) in [4ccda6f](https://github.com/lifejs/lifejs/commit/4ccda6f88a4211f3bda85aac6f3653232a666b11) — Refactor plugin dependencies to unify them with the future items dependency and simplify the DX
+- [@LilaRest](https://github.com/LilaRest) in [55ed17e](https://github.com/lifejs/lifejs/commit/55ed17e236f54c6285bf062b5a188efa6ed43b63) — Make plugins' context definition bound to a Zod schema
+
+### Patch Changes
+
+- [@LilaRest](https://github.com/LilaRest) in [55ed17e](https://github.com/lifejs/lifejs/commit/55ed17e236f54c6285bf062b5a188efa6ed43b63) — Bump dependencies + migrate to Biome v2
+
 ## 0.6.0
 
 ### Minor Changes

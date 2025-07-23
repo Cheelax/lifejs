@@ -88,7 +88,7 @@ export class SileroVAD extends VADBase<typeof sileroVADConfigSchema> {
       state: new Tensor("float32", this.#rnnState, [2, 1, 128]),
       sr: new Tensor("int64", this.#srTensor),
     })) as Record<string, Tensor>;
-    if (!output || !stateN) throw new Error("Unexpected ONNX output");
+    if (!(output && stateN)) throw new Error("Unexpected ONNX output");
 
     // 7. Persist state & past context for next call
     this.#rnnState.set(stateN.data as Float32Array);

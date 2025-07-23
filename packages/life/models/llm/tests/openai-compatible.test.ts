@@ -1,5 +1,5 @@
-import type { Message, ToolDefinition } from "@/agent/resources";
 import { z } from "zod";
+import type { Message, ToolDefinition } from "@/agent/resources";
 import { OpenAILLM } from "../providers/openai";
 import { XaiLLM } from "../providers/xai";
 
@@ -67,7 +67,7 @@ function createCalculatorTool(): ToolDefinition {
     outputSchema: z.object({
       result: z.number().describe("The calculation result"),
     }),
-    run: async (input: object) => ({ success: true, output: { result: Math.random() * 100 } }),
+    run: async () => ({ success: true, output: { result: Math.random() * 100 } }),
   };
 }
 
@@ -82,7 +82,7 @@ function createWeatherTool(): ToolDefinition {
       temperature: z.number().describe("Temperature in Celsius"),
       condition: z.string().describe("Weather condition"),
     }),
-    run: async (input: object) => ({
+    run: async () => ({
       success: true,
       temperature: Math.round(Math.random() * 30 + 10),
       condition: "Sunny",
@@ -91,12 +91,12 @@ function createWeatherTool(): ToolDefinition {
 }
 
 // Simple helper to consume a stream with timeout
-async function consumeStream(
+function consumeStream(
   job: {
     getStream: () => AsyncIterable<{ type: string; [key: string]: unknown }>;
     cancel: () => void;
   },
-  timeoutMs = 10000,
+  timeoutMs = 10_000,
 ) {
   const results = {
     content: "",
@@ -112,7 +112,6 @@ async function consumeStream(
       resolve(results);
     }, timeoutMs);
 
-    let lastChunkTime = Date.now();
     let inactivityTimeout: NodeJS.Timeout | undefined;
 
     const checkInactivity = () => {
@@ -129,7 +128,6 @@ async function consumeStream(
     (async () => {
       try {
         for await (const chunk of job.getStream()) {
-          lastChunkTime = Date.now();
           if (inactivityTimeout) clearTimeout(inactivityTimeout);
 
           if (chunk.type === "content") {
@@ -242,7 +240,7 @@ async function testProvider(providerConfig: ProviderConfig) {
 
     const tools = [createSearchTool()];
     const job = await provider.generateMessage({ messages, tools });
-    const result = await consumeStream(job, 15000);
+    const result = await consumeStream(job, 15_000);
 
     if (result.error) {
       console.log(`❌ Single Tool: ${result.error}`);
@@ -278,7 +276,7 @@ async function testProvider(providerConfig: ProviderConfig) {
 
     const tools = [createSearchTool(), createCalculatorTool(), createWeatherTool()];
     const job = await provider.generateMessage({ messages, tools });
-    const result = await consumeStream(job, 20000);
+    const result = await consumeStream(job, 20_000);
 
     if (result.error) {
       console.log(`❌ Parallel Tools: ${result.error}`);
@@ -329,7 +327,7 @@ async function testProvider(providerConfig: ProviderConfig) {
 
     const tools = [createSearchTool(), createCalculatorTool()];
     const job = await provider.generateMessage({ messages, tools });
-    const result = await consumeStream(job, 25000);
+    const result = await consumeStream(job, 25_000);
 
     if (result.error) {
       console.log(`❌ Tool Chaining: ${result.error}`);
@@ -367,6 +365,7 @@ async function runTests() {
   let testedProviders = 0;
 
   for (const provider of providers) {
+    // biome-ignore lint/nursery/noAwaitInLoop: expected here
     const { passed, total } = await testProvider(provider);
     totalPassed += passed;
     totalTests += total;

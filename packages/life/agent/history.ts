@@ -2,10 +2,10 @@ import { klona } from "@/shared/klona";
 import { newId } from "@/shared/prefixed-id";
 import {
   type CreateMessageInput,
+  createMessageInputSchema,
   type Message,
   type ToolRequest,
   type UpdateMessageInput,
-  createMessageInputSchema,
   updateMessageInputSchema,
 } from "./resources";
 

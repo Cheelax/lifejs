@@ -1,6 +1,7 @@
 import type { ChangelogFunctions } from "@changesets/types";
 import { Octokit } from "@octokit/rest";
 import { config } from "dotenv";
+
 config();
 
 const repoOrg = "lifejs";
@@ -19,7 +20,7 @@ async function findPRFromCommit(hash: string): Promise<number | null> {
     repo: repoName,
     commit_sha: hash,
   });
-  const pr = data.find((pr) => pr.merged_at) ?? data[0];
+  const pr = data.find((p) => p.merged_at) ?? data[0];
   return pr?.number ?? null;
 }
 
@@ -28,6 +29,7 @@ async function getAuthors(source: Source): Promise<string[]> {
     const authors = new Set<string>();
     const per_page = 100;
     for (let page = 1; ; page++) {
+      // biome-ignore lint/nursery/noAwaitInLoop: ignore
       const { data: commits } = await octokit.rest.pulls.listCommits({
         owner: repoOrg,
         repo: repoName,

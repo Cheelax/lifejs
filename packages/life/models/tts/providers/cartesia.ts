@@ -46,10 +46,11 @@ export class CartesiaTTS extends TTSBase<typeof cartesiaTTSConfigSchema> {
     this.#socket = this.#cartesia.tts.websocket({
       container: "raw",
       encoding: "pcm_s16le",
-      sampleRate: 16000,
+      sampleRate: 16_000,
     });
   }
 
+  // biome-ignore lint/suspicious/useAwait: need async to match TTSBase abstract method
   async generate(): Promise<TTSGenerateJob> {
     // Create a new generation job
     const job = this.createGenerateJob();
@@ -85,6 +86,7 @@ export class CartesiaTTS extends TTSBase<typeof cartesiaTTSConfigSchema> {
     }
   }
 
+  // biome-ignore lint/suspicious/useAwait: need async to match TTSBase abstract method
   protected async _onGeneratePushText(
     job: TTSGenerateJob,
     text: string,
@@ -100,7 +102,7 @@ export class CartesiaTTS extends TTSBase<typeof cartesiaTTSConfigSchema> {
       outputFormat: {
         container: "raw",
         encoding: "pcm_s16le",
-        sampleRate: 16000,
+        sampleRate: 16_000,
       },
       continue: !isLast,
       maxBufferDelayMs: 100,

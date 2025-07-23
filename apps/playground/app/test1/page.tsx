@@ -1,58 +1,67 @@
 "use client";
 import { AgentClient } from "life/client";
+import Image from "next/image";
 import { useState } from "react";
-import { fetchToken } from "./actions";
 import { FancyButton } from "@/components/ui/fancy-button";
+import { fetchToken } from "./actions";
 
-const client = new AgentClient({});
+const client = new AgentClient({
+  transport: {
+    provider: "livekit",
+    serverUrl: "ws://127.0.0.1:7880",
+  },
+});
 
 export default function Home() {
   const [token, setToken] = useState<string | null>(null);
-  
 
   const startDiscussion = async () => {
-    const token = await fetchToken();
-    setToken(token);
-    await client.inviteAgent("room-1", token);
+    const newToken = await fetchToken();
+    setToken(newToken);
+    await client.inviteAgent("room-1", newToken);
   };
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-8 relative">
-      <div className="text-center space-y-8">
-        <img 
-          src="/logo-full.png" 
+    <main className="relative flex min-h-screen flex-col items-center justify-center bg-gray-50 p-8">
+      <div className="space-y-8 text-center">
+        <Image
           alt="Life.js"
-          className="h-6 mx-auto mb-12 opacity-70"
+          className="mx-auto mb-12 h-6 w-auto opacity-70"
+          height={200}
+          src="/logo-full.png"
+          width={200}
         />
-        
-        <FancyButton onClick={() => startDiscussion()} size="md" className="text-white">
+
+        <FancyButton className="text-white" onClick={() => startDiscussion()} size="md">
           Start Discussion
         </FancyButton>
-        
-        <div className="grid grid-cols-2 gap-8 w-fit mx-auto">
-          <div
-            className="w-32 h-32 bg-red-500 rounded-xl cursor-pointer transition-transform hover:scale-105 shadow-lg"
+
+        <div className="mx-auto grid w-fit grid-cols-2 gap-8">
+          <button
+            className="h-32 w-32 cursor-pointer rounded-xl bg-red-500 shadow-lg transition-transform hover:scale-105"
             onMouseEnter={() => client.say("You're on the red square")}
-          />
-          <div
-            className="w-32 h-32 bg-blue-500 rounded-xl cursor-pointer transition-transform hover:scale-105 shadow-lg"
+            type="button"
+          ></button>
+          <button
+            className="h-32 w-32 cursor-pointer rounded-xl bg-blue-500 shadow-lg transition-transform hover:scale-105"
             onMouseEnter={() => client.say("You're on the blue square")}
-          />
-          <div
-            className="w-32 h-32 bg-green-500 rounded-xl cursor-pointer transition-transform hover:scale-105 shadow-lg"
+            type="button"
+          ></button>
+          <button
+            className="h-32 w-32 cursor-pointer rounded-xl bg-green-500 shadow-lg transition-transform hover:scale-105"
             onMouseEnter={() => client.say("You're on the green square")}
-          />
-          <div
-            className="w-32 h-32 bg-yellow-500 rounded-xl cursor-pointer transition-transform hover:scale-105 shadow-lg"
+            type="button"
+          ></button>
+          <button
+            className="h-32 w-32 cursor-pointer rounded-xl bg-yellow-500 shadow-lg transition-transform hover:scale-105"
             onMouseEnter={() => client.say("You're on the yellow square")}
-          />
+            type="button"
+          ></button>
         </div>
       </div>
-      
-      <div className="absolute bottom-4 left-4 right-4 text-center flex items-center justify-center">
-        <p className="text-xs text-gray-400 break-all text-pretty max-w-[710px]">
-          Token: {token}
-        </p>
+
+      <div className="absolute right-4 bottom-4 left-4 flex items-center justify-center text-center">
+        <p className="max-w-[710px] text-pretty break-all text-gray-400 text-xs">Token: {token}</p>
       </div>
     </main>
   );

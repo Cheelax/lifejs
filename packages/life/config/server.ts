@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { type EOUProviderConfig, eouProviderConfigSchema } from "@/models/eou";
 import { type LLMProviderConfig, llmProviderConfigSchema } from "@/models/llm";
 import { type STTProviderConfig, sttProviderConfigSchema } from "@/models/stt";
@@ -6,10 +7,9 @@ import { type VADProviderConfig, vadProviderConfigSchema } from "@/models/vad";
 import {
   type ServerTransportProviderConfig,
   serverTransportProviderConfigSchema,
-} from "@/transport/index.server";
-import { z } from "zod";
+} from "@/transport/server";
 
-export const configDefinitionSchema = z
+export const serverConfigDefinitionSchema = z
   .object({
     transport: serverTransportProviderConfigSchema.default({ provider: "livekit" }),
     models: z
@@ -24,7 +24,7 @@ export const configDefinitionSchema = z
   })
   .default({});
 
-export type ConfigDefinition<T extends "input" | "output"> = T extends "input"
+export type ServerConfig<T extends "input" | "output"> = T extends "input"
   ? {
       transport?: ServerTransportProviderConfig<T>;
       models?: {
@@ -46,7 +46,7 @@ export type ConfigDefinition<T extends "input" | "output"> = T extends "input"
       };
     };
 
-export function defineConfig(def: ConfigDefinition<"input">) {
-  const parsedConfig = configDefinitionSchema.parse(def);
+export function defineConfig(def: ServerConfig<"input">) {
+  const parsedConfig = serverConfigDefinitionSchema.parse(def);
   return { raw: def, withDefaults: parsedConfig };
 }

@@ -1,8 +1,8 @@
-import type { Message, ToolDefinition } from "@/agent/resources";
 import { OpenAI } from "openai";
 import type { ChatCompletionMessageParam } from "openai/resources/index.js";
 import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
+import type { Message, ToolDefinition } from "@/agent/resources";
 import { LLMBase, type LLMGenerateMessageJob } from "../base";
 
 // Config

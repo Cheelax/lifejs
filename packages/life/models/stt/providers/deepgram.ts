@@ -1,9 +1,9 @@
 import {
+  createClient,
   type DeepgramClient,
   type ListenLiveClient,
   type LiveTranscriptionEvent,
   LiveTranscriptionEvents,
-  createClient,
 } from "@deepgram/sdk";
 import { z } from "zod";
 import { STTBase, type STTGenerateJob } from "../base";
@@ -66,6 +66,7 @@ export class DeepgramSTT extends STTBase<typeof deepgramSTTConfigSchema> {
     this.#deepgram = createClient(config.apiKey);
   }
 
+  // biome-ignore lint/suspicious/useAwait: need async to match STTBase abstract method
   async generate(): Promise<STTGenerateJob> {
     // Create a new generation job
     const job = this.createGenerateJob();
@@ -73,7 +74,7 @@ export class DeepgramSTT extends STTBase<typeof deepgramSTTConfigSchema> {
     // Establish a new socket for the job
     const socket = this.#deepgram.listen.live({
       encoding: "linear16",
-      sample_rate: 16000,
+      sample_rate: 16_000,
       channels: 1,
       filler_words: true,
       numerals: true,

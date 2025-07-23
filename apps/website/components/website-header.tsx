@@ -1,13 +1,13 @@
 "use client";
 
-import { cn } from "@/lib/cn";
-import logoIcon from "@/public/logo-full.png";
 import { RiDiscordFill, RiGithubFill } from "@remixicon/react";
 import { motion } from "motion/react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { FC, HTMLAttributes } from "react";
+import { cn } from "@/lib/cn";
+import logoIcon from "@/public/logo-full.png";
 
 interface WebsiteHeaderProps extends HTMLAttributes<HTMLDivElement> {}
 
@@ -24,16 +24,16 @@ export const WebsiteHeader: FC<WebsiteHeaderProps> = ({
     <nav className={cn("h-20", className)} {...props}>
       {!isHomePage && (
         <motion.div
+          animate={{
+            opacity: 1,
+            filter: "blur(0px)",
+          }}
           className={cn(
             "absolute top-[1.125rem] left-[1.125rem] z-10 flex h-[37px] transform items-center justify-center pl-2",
           )}
           initial={{
             opacity: 0,
             filter: "blur(10px)",
-          }}
-          animate={{
-            opacity: 1,
-            filter: "blur(0px)",
           }}
           transition={{
             duration: 0.8,
@@ -43,26 +43,26 @@ export const WebsiteHeader: FC<WebsiteHeaderProps> = ({
         >
           <Link href="/">
             <Image
-              src={logoIcon}
               alt="Life.js"
-              height={100}
               className="h-[20px] w-auto opacity-30 grayscale-100 transition-all duration-500 hover:opacity-60 hover:grayscale-0"
+              height={100}
+              src={logoIcon}
             />
           </Link>
         </motion.div>
       )}
       {isHomePage && (
         <motion.div
+          animate={{
+            opacity: 1,
+            filter: "blur(0px)",
+          }}
           className={cn(
             "absolute top-[1.125rem] left-[1.125rem] z-10 flex h-[37px] transform items-center justify-center pl-2",
           )}
           initial={{
             opacity: 0,
             filter: "blur(10px)",
-          }}
-          animate={{
-            opacity: 1,
-            filter: "blur(0px)",
           }}
           transition={{
             duration: 0.8,
@@ -77,14 +77,14 @@ export const WebsiteHeader: FC<WebsiteHeaderProps> = ({
         </motion.div>
       )}
       <motion.div
+        animate={{
+          opacity: 1,
+          filter: "blur(0px)",
+        }}
         className="-translate-x-1/2 absolute top-[1.125rem] left-1/2 z-10 transform"
         initial={{
           opacity: 0,
           filter: "blur(10px)",
-        }}
-        animate={{
-          opacity: 1,
-          filter: "blur(0px)",
         }}
         transition={{
           duration: 0.8,
@@ -94,14 +94,14 @@ export const WebsiteHeader: FC<WebsiteHeaderProps> = ({
       >
         <div className="flex h-[36px] items-center gap-[1.6875rem] rounded-full border border-black/6 bg-black/2 px-[1.15rem] font-normal text-[0.93275rem] text-black/40 transition-colors hover:border-black/10">
           <Link
-            href="/docs/start-here/overview"
             className="leading-none leading-trim tracking-normal transition-colors hover:text-black/60"
+            href="/docs/start-here/overview"
           >
             Docs
           </Link>
           <Link
-            href="/examples"
             className="leading-none leading-trim tracking-normal transition-colors hover:text-black/60"
+            href="/examples"
           >
             Examples
           </Link>
@@ -112,22 +112,22 @@ export const WebsiteHeader: FC<WebsiteHeaderProps> = ({
               News
             </Link> */}
           <Link
-            href="/changelog"
             className="leading-none leading-trim tracking-normal transition-colors hover:text-black/60"
+            href="/changelog"
           >
             Changelog
           </Link>
         </div>
       </motion.div>
       <motion.div
+        animate={{
+          opacity: 1,
+          filter: "blur(0px)",
+        }}
         className="absolute top-[1.125rem] right-[1.125rem] z-10 flex h-[37px] transform items-center justify-center gap-3 pr-2"
         initial={{
           opacity: 0,
           filter: "blur(10px)",
-        }}
-        animate={{
-          opacity: 1,
-          filter: "blur(0px)",
         }}
         transition={{
           duration: 0.8,

@@ -1,9 +1,10 @@
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import type { Message } from "@/agent/resources";
 import { InferenceSession, Tensor } from "onnxruntime-node";
 import { z } from "zod";
+import type { Message } from "@/agent/resources";
 import { EOUBase } from "../../base";
+
 const transformers = import("@huggingface/transformers");
 
 const MAX_TOKENS = 256; // Hardcoded in the model
@@ -16,7 +17,7 @@ export const turnSenseEOUConfigSchema = z.object({
    * message inferences, and their documentation shows single message inferences as
    * well. Hence why this value defaults to 1. Carefully benchmark the change if you
    * consider increasing this value.
-   * */
+   */
   maxMessages: z.number().default(1),
 });
 
@@ -155,7 +156,7 @@ export class TurnSenseEOU extends EOUBase<typeof turnSenseEOUConfigSchema> {
 
       // Retrieve and return the EOU probability
       const probabilities = outputs.probabilities;
-      if (!probabilities || !probabilities.data || probabilities.data.length < 2) return 0;
+      if (!probabilities?.data || probabilities.data.length < 2) return 0;
       const eouProbability = probabilities.data[1];
       return typeof eouProbability === "number" ? eouProbability : 0;
     } catch (error) {

@@ -1,6 +1,8 @@
 // Copyright 2024 LiveKit, Inc.
 // Taken from https://github.com/livekit/agents-js/blob/544353f7ec38b0f0f8837a7ae2e5d6ecf2176ee6/agents/src/tokenize/basic/hyphenator.ts
 
+// biome-ignore-start lint/performance/useTopLevelRegex: hoisting regexes led to the tokenize to break, we'll keep them inline for now until this becames a performance issue
+
 const END = Symbol("END");
 interface Tree {
   [id: string]: Tree | string;
@@ -29,7 +31,7 @@ export class Hyphenator {
 
   #insertPattern(pattern: string) {
     const chars = pattern.replaceAll(/[0-9]/g, "");
-    const points = pattern.split(/[.a-z]/).map((d) => Number.parseInt(d || "0"));
+    const points = pattern.split(/[.a-z]/).map((d) => Number.parseInt(d || "0", 10));
 
     let node = this.tree;
     for (const char of chars) {
@@ -435,3 +437,5 @@ const EXCEPTIONS = `as-so-ciate as-so-ciates dec-li-na-tion oblig-a-tory phil-an
   presents project projects reci-procity re-cog-ni-zance ref-or-ma-tion ret-ri-bu-tion ta-ble`;
 
 export const hyphenator = new Hyphenator(PATTERNS, EXCEPTIONS);
+
+// biome-ignore-end lint/performance/useTopLevelRegex: reason

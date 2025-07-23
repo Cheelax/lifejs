@@ -1,7 +1,7 @@
+import type { z } from "zod";
 import { AsyncQueue } from "@/shared/async-queue";
 import { audioChunkToMs } from "@/shared/audio-chunk-to-ms";
 import { newId } from "@/shared/prefixed-id";
-import type { z } from "zod";
 import { tokenizer } from "./lib/spoken-text-tokenizer";
 import { WeightedAverage } from "./lib/weighted-average";
 

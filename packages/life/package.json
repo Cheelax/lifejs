@@ -1,13 +1,47 @@
 {
   "name": "life",
-  "version": "0.6.0",
+  "version": "0.11.1",
+  "description": "Life.js is the first fullstack framework to build agentic web applications. It is minimal, extensible, and typesafe. Well, everything you love.",
+  "author": "Lila Rest",
+  "license": "MIT+Services",
+  "homepage": "https://lifejs.org",
+  "bugs": {
+    "url": "https://github.com/lifejs/lifejs/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lifejs/lifejs"
+  },
+  "files": [
+    "dist/",
+    "package.json",
+    "README.md",
+    "LICENSE",
+    "LICENSE.SERVICES"
+  ],
+  "keywords": [
+    "react",
+    "framework",
+    "typescript",
+    "fullstack",
+    "agents",
+    "agentic"
+  ],
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "types": "tsc --noEmit --emitDeclarationOnly false"
+    "types": "tsc --noEmit --emitDeclarationOnly false",
+    "prepack": "cp ../../README.md README.md && cp ../../LICENSE LICENSE && cp ../../LICENSE.SERVICES LICENSE.SERVICES"
   },
   "bin": {
-    "life": "./bin/cli.js"
+    "life": "./dist/cli.js"
+  },
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "exports": {
     "./define": {
@@ -22,12 +56,12 @@
     },
     "./client": {
       "import": {
-        "types": "./dist/client/client.d.ts",
-        "default": "./dist/client/client.mjs"
+        "types": "./dist/agent/client.d.ts",
+        "default": "./dist/agent/client.mjs"
       },
       "require": {
-        "types": "./dist/client/client.d.ts",
-        "default": "./dist/client/client.js"
+        "types": "./dist/agent/client.d.ts",
+        "default": "./dist/agent/client.js"
       }
     },
     "./auth": {
@@ -45,26 +79,48 @@
     "@anthropic-ai/sdk": "^0.32.1",
     "@cartesia/cartesia-js": "^2.2.4",
     "@deepgram/sdk": "4.1.0",
-    "@huggingface/transformers": "^3.5.2",
+    "@huggingface/transformers": "^3.6.3",
     "@inkjs/ui": "^2.0.0",
-    "@livekit/protocol": "^1.39.0",
-    "@livekit/rtc-node": "^0.13.14",
+    "@livekit/protocol": "^1.39.3",
+    "@livekit/rtc-node": "^0.13.17",
     "@paralleldrive/cuid2": "^2.2.2",
-    "@mistralai/mistralai": "^1.7.3",
     "@zenobius/ink-mouse": "^1.0.3",
-    "livekit-client": "^2.13.4",
-    "livekit-server-sdk": "^2.13.0",
+    "livekit-client": "^2.15.2",
+    "livekit-server-sdk": "^2.13.1",
     "onnxruntime-node": "^1.22.0-rev",
-    "openai": "^5.3.0",
     "react": "^19",
-    "serialize-error": "^12.0.0",
-    "superjson": "1.13.3",
-    "to-words": "^4.6.0",
+    "superjson": "^2.2.2",
+    "to-words": "^4.7.0",
+    "yjs": "^13.6.27",
     "zod": "^3.25.58",
-    "zod-to-json-schema": "^3.24.5"
+    "zod-to-json-schema": "^3.24.6"
   },
-  "peerDependencies": {},
   "devDependencies": {
+    "@cartesia/cartesia-js": "^2.2.5",
+    "@deepgram/sdk": "4.9.1",
+    "@mistralai/mistralai": "^1.7.4",
+    "@types/bun": "^1.2.18",
+    "openai": "^5.9.0",
     "tsup": "^8.5.0"
+  },
+  "peerDependencies": {
+    "@cartesia/cartesia-js": "^2.2.5",
+    "@deepgram/sdk": "4.9.1",
+    "@mistralai/mistralai": "^1.7.4",
+    "openai": "^5.9.0"
+  },
+  "peerDependenciesMeta": {
+    "@cartesia/cartesia-js": {
+      "optional": true
+    },
+    "@deepgram/sdk": {
+      "optional": true
+    },
+    "@mistralai/mistralai": {
+      "optional": true
+    },
+    "openai": {
+      "optional": true
+    }
   }
 }

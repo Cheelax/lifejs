@@ -1,5 +1,5 @@
-import type { Message, ToolDefinition } from "@/agent/resources";
 import { z } from "zod";
+import type { Message, ToolDefinition } from "@/agent/resources";
 import { MistralLLM } from "../providers/mistral";
 
 function createMessage(role: Message["role"], content: string): Message {
@@ -40,20 +40,20 @@ function createCalculatorTool(): ToolDefinition {
     outputSchema: z.object({
       result: z.number().describe("The calculation result"),
     }),
-    run: async (input: object) => ({ 
-      success: true, 
-      output: { result: Math.random() * 100 } 
+    run: async () => ({
+      success: true,
+      output: { result: Math.random() * 100 },
     }),
   };
 }
 
 // Simple helper to consume a stream with timeout
-async function consumeStream(
+function consumeStream(
   job: {
     getStream: () => AsyncIterable<{ type: string; [key: string]: unknown }>;
     cancel: () => void;
   },
-  timeoutMs = 10000,
+  timeoutMs = 10_000,
 ) {
   const results = {
     content: "",
@@ -96,7 +96,7 @@ async function consumeStream(
             checkInactivity();
           } else if (chunk.type === "tools") {
             const tools = chunk.tools as Array<{ id: string; name: string; input: unknown }>;
-            results.tools.push(...tools.map(tool => ({ id: tool.name, input: tool.input })));
+            results.tools.push(...tools.map((tool) => ({ id: tool.name, input: tool.input })));
             results.toolsCalled += tools.length;
             checkInactivity();
           } else if (chunk.type === "end") {
@@ -199,7 +199,7 @@ async function runTests() {
 
     const tools = [createSearchTool()];
     const job = await provider.generateMessage({ messages, tools });
-    const result = await consumeStream(job, 15000);
+    const result = await consumeStream(job, 15_000);
 
     if (result.error) {
       console.log(`❌ Single Tool: ${result.error}`);
@@ -233,7 +233,7 @@ async function runTests() {
 
     const tools = [createSearchTool(), createCalculatorTool()];
     const job = await provider.generateMessage({ messages, tools });
-    const result = await consumeStream(job, 20000);
+    const result = await consumeStream(job, 20_000);
 
     if (result.error) {
       console.log(`❌ Parallel Tools: ${result.error}`);

@@ -1,18 +1,17 @@
-import { getToken } from "@/transport/auth";
 import {
   AudioFrame,
   AudioSource,
   AudioStream,
+  dispose,
   LocalAudioTrack,
   type RemoteTrack,
   Room,
   RoomEvent,
   TrackPublishOptions,
   TrackSource,
-  dispose,
 } from "@livekit/rtc-node";
 import { z } from "zod";
-import { ServerTransportBase, type ServerTransportEvent } from "../base/server";
+import { BaseServerTransportProvider, type ServerTransportEvent } from "../base/server";
 
 // - Config
 export const livekitServerConfigSchema = z.object({
@@ -28,17 +27,19 @@ export type LiveKitServerConfig<T extends "input" | "output"> = T extends "input
   : z.output<typeof livekitServerConfigSchema>;
 
 // - Transport
-export class LiveKitServerTransport extends ServerTransportBase<typeof livekitServerConfigSchema> {
+export class LiveKitServerTransport extends BaseServerTransportProvider<
+  typeof livekitServerConfigSchema
+> {
   isConnected = false;
   room: Room | null = null;
   listeners: Partial<
     Record<ServerTransportEvent["type"], ((event: ServerTransportEvent) => void)[]>
   > = {};
-  source = new AudioSource(16_000, 1, 1000000);
+  source = new AudioSource(16_000, 1, 1_000_000);
 
   private audioBuffer: Int16Array = new Int16Array(0);
   private readonly FRAME_DURATION_MS = 10; // 10ms frames
-  private readonly SAMPLES_PER_FRAME = (16000 * this.FRAME_DURATION_MS) / 1000; // 160 samples for 10ms at 16kHz
+  private readonly SAMPLES_PER_FRAME = (16_000 * this.FRAME_DURATION_MS) / 1000; // 160 samples for 10ms at 16kHz
 
   #flushTimeout: NodeJS.Timeout | null = null;
 
@@ -52,7 +53,7 @@ export class LiveKitServerTransport extends ServerTransportBase<typeof livekitSe
   ): asserts connector is LiveKitServerTransport & {
     room: Room & { localParticipant: NonNullable<Room["localParticipant"]> };
   } {
-    if (!this.isConnected || !this.room?.localParticipant)
+    if (!(this.isConnected && this.room?.localParticipant))
       throw new Error(
         `Calling this code (${name}) requires a connected room. Call joinRoom() first.`,
       );
@@ -64,7 +65,7 @@ export class LiveKitServerTransport extends ServerTransportBase<typeof livekitSe
     // audio-chunk
     room.on(RoomEvent.TrackSubscribed, async (track) => {
       let isUnsubscribed = false;
-      const audio = new AudioStream(track, { sampleRate: 16000 });
+      const audio = new AudioStream(track, { sampleRate: 16_000 });
 
       // Listen for unsubscribing
       const unsubscribeHandler = (unsubscribedTrack: RemoteTrack) => {
@@ -74,6 +75,7 @@ export class LiveKitServerTransport extends ServerTransportBase<typeof livekitSe
       room.on(RoomEvent.TrackUnsubscribed, unsubscribeHandler);
 
       // Stream audio chunks until the track is unsubscribed
+      // @ts-expect-error - AudioStream extends ReadableStream which has Symbol.asyncIterator at runtime
       for await (const frame of audio) {
         if (isUnsubscribed) break;
         for (const listener of this.listeners["audio-chunk"] ?? []) {
@@ -83,7 +85,7 @@ export class LiveKitServerTransport extends ServerTransportBase<typeof livekitSe
     });
   }
 
-  async joinRoom(roomId: string): Promise<void> {
+  async joinRoom(roomId: string, token: string): Promise<void> {
     // If we are already connected to this room, do nothing
     if (roomId === this.room?.name) return;
     // If we are already connected to a room, leave it before
@@ -96,7 +98,6 @@ export class LiveKitServerTransport extends ServerTransportBase<typeof livekitSe
     this.#initializeListeners(this.room);
 
     // Connect to the room and auto-subscribe to tracks
-    const token = await getToken("livekit", this.config, "room-1", "agent-1");
     await this.room.connect(this.config.serverUrl, token, {
       autoSubscribe: true,
       dynacast: true,
@@ -150,7 +151,7 @@ export class LiveKitServerTransport extends ServerTransportBase<typeof livekitSe
 
   async flushAudioBuffer() {
     if (!this.audioBuffer?.length) return;
-    const audioFrame = new AudioFrame(this.audioBuffer, 16000, 1, this.audioBuffer.length);
+    const audioFrame = new AudioFrame(this.audioBuffer, 16_000, 1, this.audioBuffer.length);
     try {
       await this.source.captureFrame(audioFrame);
     } catch (error) {
@@ -173,8 +174,9 @@ export class LiveKitServerTransport extends ServerTransportBase<typeof livekitSe
       const frameData = this.audioBuffer.slice(0, this.SAMPLES_PER_FRAME);
       this.audioBuffer = this.audioBuffer.slice(this.SAMPLES_PER_FRAME);
 
-      const audioFrame = new AudioFrame(frameData, 16000, 1, this.SAMPLES_PER_FRAME);
+      const audioFrame = new AudioFrame(frameData, 16_000, 1, this.SAMPLES_PER_FRAME);
       try {
+        // biome-ignore lint/nursery/noAwaitInLoop: need sequential in this case
         await this.source.captureFrame(audioFrame);
       } catch (error) {
         console.error("Error capturing audio frame:", error);

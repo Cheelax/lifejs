@@ -1,6 +1,6 @@
-import { cn } from "@/lib/cn";
-import { type VariantProps, cva } from "class-variance-authority";
+import { cva, type VariantProps } from "class-variance-authority";
 import type * as React from "react";
+import { cn } from "@/lib/cn";
 
 export const fancyButtonOuterVariants = cva(
   " inline-flex shrink-0 cursor-pointer rounded-lg p-[1px] font-normal outline-none transition-all duration-300 hover:brightness-130 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none [&_svg]:shrink-0",
@@ -49,8 +49,8 @@ interface FancyButtonProps
 export function FancyButton({ className, variant, size, children, ...props }: FancyButtonProps) {
   return (
     <button
-      type="button"
       className={cn(fancyButtonOuterVariants({ variant, size }), className)}
+      type="button"
       {...props}
     >
       <span className={cn(fancyButtonInnerVariants({ variant, size }), className)}>{children}</span>
