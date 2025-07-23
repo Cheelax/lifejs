@@ -27,12 +27,12 @@ export class XaiLLM extends LLMBase<typeof xaiLLMConfigSchema> {
 
   constructor(config: z.input<typeof xaiLLMConfigSchema>) {
     super(xaiLLMConfigSchema, config);
-    if (!config.apiKey)
+    if (!this.config.apiKey)
       throw new Error(
         "XAI_API_KEY environment variable or config.apiKey must be provided to use this model.",
       );
     this.#client = new OpenAI({
-      apiKey: config.apiKey,
+      apiKey: this.config.apiKey,
       baseURL: "https://api.x.ai/v1",
     });
   }

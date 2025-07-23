@@ -56,11 +56,11 @@ export class MistralLLM extends LLMBase<typeof mistralLLMConfigSchema> {
 
   constructor(config: z.input<typeof mistralLLMConfigSchema>) {
     super(mistralLLMConfigSchema, config);
-    if (!config.apiKey)
+    if (!this.config.apiKey)
       throw new Error(
         "MISTRAL_API_KEY environment variable or config.apiKey must be provided to use this model.",
       );
-    this.#client = new Mistral({ apiKey: config.apiKey });
+    this.#client = new Mistral({ apiKey: this.config.apiKey });
   }
 
   /**

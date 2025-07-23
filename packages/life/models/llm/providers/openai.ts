@@ -18,11 +18,11 @@ export class OpenAILLM extends LLMBase<typeof openAILLMConfigSchema> {
 
   constructor(config: z.input<typeof openAILLMConfigSchema>) {
     super(openAILLMConfigSchema, config);
-    if (!config.apiKey)
+    if (!this.config.apiKey)
       throw new Error(
         "OPENAI_API_KEY environment variable or config.apiKey must be provided to use this model.",
       );
-    this.#client = new OpenAI({ apiKey: config.apiKey });
+    this.#client = new OpenAI({ apiKey: this.config.apiKey });
   }
 
   /**
